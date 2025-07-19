@@ -23,22 +23,22 @@ class AccessibilityScanner:
     
     def scan(self):
         try:
-            # Fetch the webpage
+            
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
             response = requests.get(self.url, headers=headers, timeout=10)
             response.raise_for_status()
             
-            # Parse HTML
+            
             self.soup = BeautifulSoup(response.text, 'html.parser')
             
-            # Run accessibility checks
+            
             self._check_alt_text()
             self._check_color_contrast()
             self._check_form_labels()
             self._check_heading_structure()
             self._check_link_text()
             
-            # Calculate score (each issue reduces score by 5 points)
+            
             self.score = max(0, 100 - (len(self.issues) * 5))
             
             return {
@@ -66,13 +66,12 @@ class AccessibilityScanner:
                 })
     
     def _check_color_contrast(self):
-        # This is a simplified check - a real implementation would need to extract actual colors
-        # from CSS and compute contrast ratios
+        
         elements = self.soup.find_all(['p', 'span', 'div', 'a', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
         for element in elements:
             style = element.get('style', '')
             if 'color' in style and 'background' in style:
-                # This is a simplified check - in reality you'd need to compute contrast ratios
+                
                 self.issues.append({
                     'type': 'color_contrast',
                     'element': str(element)[:100] + '...' if len(str(element)) > 100 else str(element),
@@ -111,7 +110,7 @@ class AccessibilityScanner:
                 'fix': 'Add proper heading structure starting with H1'
             })
         else:
-            # Check if H1 exists
+            
             if not self.soup.find('h1'):
                 self.issues.append({
                     'type': 'missing_h1',
@@ -120,7 +119,7 @@ class AccessibilityScanner:
                     'fix': 'Add an H1 heading as the main title of the page'
                 })
             
-            # Check for proper heading hierarchy
+            
             heading_levels = [int(h.name[1]) for h in headings]
             for i in range(1, len(heading_levels)):
                 if heading_levels[i] > heading_levels[i-1] + 1:
@@ -160,7 +159,7 @@ def scan():
     if not url:
         return jsonify({'error': 'URL is required'})
     
-    # Add http:// if not present
+    
     if not url.startswith(('http://', 'https://')):
         url = 'https://' + url
     
@@ -170,11 +169,11 @@ def scan():
     return jsonify(results)
 
 if __name__ == '__main__':
-    # Create templates directory if it doesn't exist
+    
     if not os.path.exists('templates'):
         os.makedirs('templates')
     
-    # Suppress Flask development server warning
+    
     import os
     os.environ['WERKZEUG_RUN_MAIN'] = 'true'
     
