@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AccessiCheck - Website Accessibility Scanner</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .scan-form {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .results {
+            display: none;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .score-value {
+            font-size: 48px;
+        }
+        .issues {
+            margin-top: 20px;
+        }
+        .issue {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #e74c3c;
+            border-radius: 3px;
+        }
+        .issue h3 {
+            margin-top: 0;
+            color: #e74c3c;
+        }
+        .issue-fix {
+            background-color: #eafaf1;
+            padding: 10px;
+            border-left: 4px solid #2ecc71;
+            margin-top: 10px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>AccessiCheck</h1>
+        <p>Instant Website Accessibility Scanner</p>
+    </header>
+
+    <div class="container">
+        <div class="scan-form">
+            <form id="scanForm">
+                <div class="form-group">
+                    <label for="url">Enter Website URL:</label>
+                    <input type="text" id="url" name="url" placeholder="example.com" required>
+                </div>
+                <button type="submit">Scan Website</button>
+            </form>
+        </div>
+
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Scanning website for accessibility issues...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="score">
+                Accessibility Score: <span id="scoreValue" class="score-value">0</span>/100
+            </div>
+            
+            <div id="summary"></div>
+            
+            <div class="issues">
+                <h2>Accessibility Issues Found:</h2>
+                <div id="issuesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('scanForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const url = document.getElementById('url').value;
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.querySelector('.loading');
+            
+            // Hide results and show loading
+            resultsDiv.style.display = 'none';
+            loadingDiv.style.display = 'block';
+            
+            // Send scan request
+            fetch('/scan', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'url=' + encodeURIComponent(url)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading
+                loadingDiv.style.display = 'none';
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+                
+                // Update score
+                document.getElementById('scoreValue').textContent = data.score;
+                
+                // Update summary
+                const summary = document.getElementById('summary');
+                if (data.issues.length === 0) {
+                    summary.innerHTML = '<p>Great job! No accessibility issues were found.</p>';
+                } else {
+                    summary.innerHTML = `<p>Found ${data.issues.length} accessibility issues that need attention.</p>`;
+                }
+                
+                // Update issues list
+                const issuesList = document.getElementById('issuesList');
+                issuesList.innerHTML = '';
+                
+                data.issues.forEach(issue => {
+                    const issueDiv = document.createElement('div');
+                    issueDiv.className = 'issue';
+                    
+                    const issueTitle = document.createElement('h3');
+                    issueTitle.textContent = issue.description;
+                    
+                    const issueElement = document.createElement('pre');
+                    issueElement.textContent = issue.element;
+                    issueElement.style.overflowX = 'auto';
+                    
+                    const issueFix = document.createElement('div');
+                    issueFix.className = 'issue-fix';
+                    issueFix.innerHTML = '<strong>How to fix:</strong> ' + issue.fix;
+                    
+                    issueDiv.appendChild(issueTitle);
+                    issueDiv.appendChild(issueElement);
+                    issueDiv.appendChild(issueFix);
+                    
+                    issuesList.appendChild(issueDiv);
+                });
+                
+                // Show results
+                resultsDiv.style.display = 'block';
+            })
+            .catch(error => {
+                loadingDiv.style.display = 'none';
+                alert('Error: ' + error.message);
+            });
+        });
+    </script>
+</body>
+</html>
